@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import OrdinalEncoder
 from sklearn.preprocessing import StandardScaler
-
+import joblib
 def preprocessing(df,encoders=None,  scalers=None):
     encode_col = ['Sex', 'blood_type', 'age', 'location', 'job']
     scale_col = ['Recency']
@@ -24,14 +24,9 @@ def preprocessing(df,encoders=None,  scalers=None):
 from sklearn.cluster import DBSCAN
 
 def clustering(df):
-    with open('best_param.pickle', 'rb') as f:
-        bparam = pickle.load(f)
-        eps = bparam['eps']
-        minPts = bparam['min_samples']
-        df = preprocessing(df, encoders=None, scalers=None)
-        model = DBSCAN(eps=eps, min_samples=minPts, p=1)
-        labels = model.fit_predict(df)
-        n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+    model = joblib.load('./dbscanModel.pkl')
+    df = preprocessing(df, encoders=None, scalers=None)
+    labels = model.fit_predict(df)
     return labels
 
 def to_csv(df):
@@ -56,4 +51,9 @@ def to_csv(df):
     clustered_df = pd.concat([df_A,df_B,df_AB,df_O],axis=0,ignore_index=True)
     clustered_df.to_csv('clustered.csv',index=False, encoding='utf-8-sig')
 
+import time
 
+start = time.time()
+df = pd.read_csv('new_data.csv')
+to_csv(df)
+print(time.time() - start)
