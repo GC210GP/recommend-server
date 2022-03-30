@@ -45,6 +45,7 @@ df['location'] = np.random.choice(['서울','부산','대구','인천','광주',
 df['job'] = np.random.choice(['고등학생','대학생','군인','회사원','공무원','자영업','종교직','가사','기타'],len(df),
                              p=[0.124,0.207,0.14,0.325,0.051,0.025,0.003,0.022,0.103])
 df['uuid'] = [uuid.uuid4() for _ in range(len(df))]
+df = df[['uuid', 'name', 'Recency', 'Sex', 'blood_type', 'age', 'location', 'job']]
 
 df.to_csv('new_data.csv', index=False, encoding='utf-8-sig')
 #1284
