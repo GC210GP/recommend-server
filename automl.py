@@ -11,7 +11,7 @@ from scipy.stats import stats
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import OrdinalEncoder
 from sklearn.preprocessing import StandardScaler
-
+import joblib
 original_df = pd.read_csv('new_data.csv')
 original_df = original_df[['name','Recency','Sex','blood_type','age','location','job']]
 original_df['Recency'].fillna(original_df['Recency'].mean(), inplace=True)
@@ -94,20 +94,17 @@ def AutoML(X, scale_col=None, encode_col = None, encoders=None, scalers=None,sco
     model_tuned = RandomizedSearchCV(estimator=model, param_distributions=param_grid,
                                                                scoring=cv_silhouette_scorer)
     result = model_tuned.fit(df_prepro)
-    score = scores
+    '''score = scores
     print(score)
     best_model = result.best_estimator_
     best_params = result.best_params_
     print('best params type: ', type(best_params))
     print('best params: ', best_params)
-    return best_params
+    return best_params'''
+    return result
     # Auto Find Best Accuracy
 print("Auto Find Best Accuracy")
-best_param = AutoML(indexed_df, scale_col=scale_col, encode_col=encode_col, encoders=None,
+result = AutoML(indexed_df, scale_col=scale_col, encode_col=encode_col, encoders=None,
        scalers=None)
-import pickle
-import gzip
-with open('best_param.pickle','wb') as f:
-    pickle.dump(best_param,f,pickle.HIGHEST_PROTOCOL)
-
+joblib.dump(result.best_estimator_,'./dbscanModel.pkl')
 
