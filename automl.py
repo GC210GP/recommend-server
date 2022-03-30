@@ -105,4 +105,9 @@ def AutoML(X, scale_col=None, encode_col = None, encoders=None, scalers=None,sco
 print("Auto Find Best Accuracy")
 best_param = AutoML(indexed_df, scale_col=scale_col, encode_col=encode_col, encoders=None,
        scalers=None)
+import pickle
+import gzip
+with open('best_param.pickle','wb') as f:
+    pickle.dump(best_param,f,pickle.HIGHEST_PROTOCOL)
+
 
