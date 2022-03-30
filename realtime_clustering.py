@@ -56,5 +56,4 @@ def to_csv(df):
     clustered_df = pd.concat([df_A,df_B,df_AB,df_O],axis=0,ignore_index=True)
     clustered_df.to_csv('clustered.csv',index=False, encoding='utf-8-sig')
 
-df = pd.read_csv('new_data.csv')
-to_csv(df)
+
