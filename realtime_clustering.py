@@ -1,6 +1,5 @@
 from sklearn.metrics import silhouette_score
-
-import automl
+import pickle
 import numpy as np
 import pandas as pd
 from sklearn.cluster import DBSCAN
@@ -25,28 +24,31 @@ def preprocessing(df,encoders=None,  scalers=None):
 from sklearn.cluster import DBSCAN
 
 def clustering(df):
-    df = preprocessing(df,encoders=None,scalers=None)
-    best_param = automl.best_param
-    eps = best_param['eps']
-    minPts = best_param['min_samples']
-    model = DBSCAN(eps = eps, min_samples=minPts, p=1)
-    labels = model.fit_predict(df)
-    #score = silhouette_score(df,labels)
-    n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+    with open('best_param.pickle', 'rb') as f:
+        bparam = pickle.load(f)
+        eps = bparam['eps']
+        minPts = bparam['min_samples']
+        df = preprocessing(df, encoders=None, scalers=None)
+        model = DBSCAN(eps=eps, min_samples=minPts, p=1)
+        labels = model.fit_predict(df)
+        n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
     return labels
 
 def to_csv(df):
     df = df[['uuid', 'name', 'Recency', 'Sex', 'blood_type', 'age', 'location', 'job']]
     df['Recency'].fillna(df['Recency'].mean(), inplace=True)
     df = df.fillna(method='ffill')
+
     df_A = df.loc[df['blood_type'] == 'A']
     df_B = df.loc[df['blood_type'] == 'B']
     df_AB = df.loc[df['blood_type'] == 'AB']
     df_O = df.loc[df['blood_type'] == 'O']
+
     preprocessed_A = preprocessing(df_A, encoders=None, scalers=None)
     preprocessed_B = preprocessing(df_B,  encoders=None, scalers=None)
     preprocessed_AB = preprocessing(df_AB, encoders=None, scalers=None)
     preprocessed_O = preprocessing(df_O, encoders=None, scalers=None)
+
     df_A['Cluster_labels']=clustering(preprocessed_A)
     df_B['Cluster_labels']=clustering(preprocessed_B)
     df_AB['Cluster_labels']=clustering(preprocessed_AB)
@@ -54,3 +56,5 @@ def to_csv(df):
     clustered_df = pd.concat([df_A,df_B,df_AB,df_O],axis=0,ignore_index=True)
     clustered_df.to_csv('clustered.csv',index=False, encoding='utf-8-sig')
 
+df = pd.read_csv('new_data.csv')
+to_csv(df)
