@@ -12,28 +12,52 @@ from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import OrdinalEncoder
 from sklearn.preprocessing import StandardScaler
 import joblib
-original_df = pd.read_csv('new_data.csv')
-original_df = original_df[['name','Recency','Sex','blood_type','age','location','job']]
-original_df['Recency'].fillna(original_df['Recency'].mean(), inplace=True)
-original_df = original_df.fillna(method='ffill')
+#########################USER DATA(Dataframe)#########################
+# user_id       non-null  int
+# user_name     non-null  str
+# recency       non-null  int
+# sex           non-null  str
+# blood_type    non-null  str
+# birthdate     non-null  int
+# location      non-null  str
+# job           non-null  str
+# frequency     non-null  int
+# is_donated    non-null  boolean
+# is_dormant    non-null  boolean
+######################################################################
 
-indexed_df = original_df.set_index('name')
 
-encode_col = ['Sex','blood_type','age','location','job']
-scale_col = ['Recency']
+scale_col = ['recency', 'frequency']
+encode_col = ['sex','location','job', 'ageGroup','is_donated','is_dormant']
+def preprocessing(df):
+    df = pd.DataFrame(df)
+    df = df[['user_id', 'user_name', 'recency', 'sex', 'blood_type', 'birthdate', 'location', 'job', 'frequency','is_donated', 'is_dormant']]
+    df['recency'].fillna(df['recency'].mean(), inplace=True)
+    df['frequency'].fillna(df['frequency'].mean(), inplace=True)
+    df['ageGroup'] = df['birthdate'].apply(lambda x: get_category(x))
+    df = df.fillna(method='ffill')
+    result = AutoML(df, scale_col=scale_col, encode_col=encode_col, encoders=None,
+                    scalers=None)
+    joblib.dump(result.best_estimator_, './dbscanModel.pkl')
 
-
+# age categorized
+def get_category(age):
+    cat = ""
+    if age <= -1: cat = "Unknown"
+    elif age <= 5: cat = "Baby"
+    elif age <= 12: cat="Child"
+    elif age <= 18: cat = "Teenager"
+    elif age <= 25: cat="Student"
+    elif age <= 35: cat="young Adult"
+    elif age <= 60: cat = "Adult"
+    else : cat = "Elderly"
+    return cat
 # Find outlers
 def outliers(col):
     z = np.abs(stats.zscore(col))
     idx_outliers = np.where(z>3,True,False)
     return pd.Series(idx_outliers, index=col.index)
 
-#Remove outliers
-for n in range(len(scale_col)):
-    idx = None
-    idx = outliers(indexed_df.iloc[:,n])
-    indexed_df = indexed_df.loc[idx==False]
 
 
 # Description = Calculate the silhouette score and return the value
@@ -44,7 +68,6 @@ def cv_silhouette_scorer(estimator, X):
 
     # If GMM(EM) handle separately
     if type(estimator) is sklearn.mixture._gaussian_mixture.GaussianMixture:
-        # print("it's GaussianMixture()")
         labels = estimator.fit_predict(X)
         score = silhouette_score(X, labels, metric='euclidean')
         return score
@@ -64,7 +87,8 @@ def AutoML(X, scale_col=None, encode_col = None, encoders=None, scalers=None,sco
     model = DBSCAN()
     scaler = StandardScaler()
     encoder = OrdinalEncoder()
-    df_scaled = pd.DataFrame(scaler.fit_transform(X[scale_col]))
+    df_scaled = scaler.fit_transform(X[scale_col])
+    df_scaled = pd.DataFrame(df_scaled)
     df_scaled.columns = scale_col
 
     if scores is None:
@@ -89,22 +113,12 @@ def AutoML(X, scale_col=None, encode_col = None, encoders=None, scalers=None,sco
     df_prepro = pd.DataFrame(df_prepro)
     param_grid = {
         'eps':[0.75,0.1,0.25,0.5,1],
-        'min_samples':[5,20,100,200]
+        'min_samples':[5,20,100,200,500]
     }
     model_tuned = RandomizedSearchCV(estimator=model, param_distributions=param_grid,
                                                                scoring=cv_silhouette_scorer)
     result = model_tuned.fit(df_prepro)
-    '''score = scores
-    print(score)
-    best_model = result.best_estimator_
-    best_params = result.best_params_
-    print('best params type: ', type(best_params))
-    print('best params: ', best_params)
-    return best_params'''
     return result
     # Auto Find Best Accuracy
-print("Auto Find Best Accuracy")
-result = AutoML(indexed_df, scale_col=scale_col, encode_col=encode_col, encoders=None,
-       scalers=None)
-joblib.dump(result.best_estimator_,'./dbscanModel.pkl')
+
 

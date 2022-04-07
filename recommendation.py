@@ -2,14 +2,13 @@ import pandas as pd
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 from scipy.spatial import distance
 import numpy as np
+
 def preprocessing(df, encoders=None, scalers=None):
         encode = OrdinalEncoder()
         scale = StandardScaler()
-        encode_col = ['Sex', 'blood_type', 'age', 'location', 'job']
-        scale_col = ['Recency']
-        print(df)
+        scale_col = ['recency', 'frequency']
+        encode_col = ['sex', 'location', 'job', 'ageGroup', 'is_donated', 'is_dormant']
         #df_scale = df[scale_col].reshape(1,-1)
-        print(df[scale_col])
         df_scaled = pd.DataFrame(scale.fit_transform(df[scale_col]))
         #df_scaled = pd.DataFrame(scale.fit_transform(df_scale))
         df_scaled.columns = scale_col
@@ -21,16 +20,17 @@ def preprocessing(df, encoders=None, scalers=None):
         return df_prepro
 
 def recommend(target_uuid,df):
-    df['Recency'].fillna(df['Recency'].mean(), inplace=True)
+    df['recency'].fillna(df['recency'].mean(), inplace=True)
+    df['frequency'].fillna(df['frequency'].mean(), inplace=True)
     df = df.fillna(method='ffill')
 
-    userData = df.loc[df['uuid'] == target_uuid]
+    userData = df.loc[df['user_id'] == target_uuid]
     #preprocessed_userData = preprocessing(userData, encoders=None,  scalers=None,)
     user_label = userData['Cluster_labels'].reset_index(drop=True)
 
     cluster_members = df.loc[df['Cluster_labels'].isin(user_label)]
     preprocessed_cluster_members = preprocessing(cluster_members, encoders=None,scalers=None)
-    preprocessed_cluster_members.set_index(cluster_members['uuid'], inplace=True)
+    preprocessed_cluster_members.set_index(cluster_members['user_id'], inplace=True)
 
     user = preprocessed_cluster_members.loc[target_uuid, :]
 
@@ -40,13 +40,13 @@ def recommend(target_uuid,df):
         dist = distance.euclidean(user, row)
         dist_array.append(dist)
     dist_array = pd.Series(dist_array)
-    dist_array = dist_array.set_axis(cluster_members['uuid'])
+    dist_array = dist_array.set_axis(cluster_members['user_id'])
 
     sorted_dist = dist_array.sort_values()
     recom_list = sorted_dist[1:11]
     recom_uuid = recom_list.index
 
-    recom_result = cluster_members.loc[cluster_members['uuid'].isin(recom_uuid)]
+    recom_result = cluster_members['user_id'].loc[cluster_members['user_id'].isin(recom_uuid)]
     return recom_result
 
 
