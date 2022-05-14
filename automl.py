@@ -12,6 +12,7 @@ from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import OrdinalEncoder
 from sklearn.preprocessing import StandardScaler
 import joblib
+from datetime import datetime
 #########################USER DATA(Dataframe)#########################
 # user_id       non-null  int
 # user_name     non-null  str
@@ -118,6 +119,31 @@ def AutoML(X, scale_col=None, encode_col = None, encoders=None, scalers=None,sco
     model_tuned = RandomizedSearchCV(estimator=model, param_distributions=param_grid,
                                                                scoring=cv_silhouette_scorer)
     result = model_tuned.fit(df_prepro)
+    
+    # Log trained data to csv file
+    timestamp = datetime.now()
+    
+    best_model = result.best_estimator_
+    labels = best_model.labels_
+
+    # xx = pd.DataFrame({"aa": [1, 2, 3, 4], "bb": [2, 3, 4, 5]})
+    out = pd.DataFrame(X)
+    out["label"] = labels
+
+    out.to_csv("./logs/cluster-" + str(timestamp) + ".csv")
+
+    result = pd.DataFrame(
+        {
+            "Date": [timestamp],
+            "num_of_people": [len(X)],
+            "eps": [best_model.eps],
+            "min_samples": [best_model.min_samples],
+            "num_of_cluster": [max(best_model.labels_)],
+        }
+    )
+
+    result.to_csv("./logs/result-" + str(timestamp) + ".csv")
+
     return result
     # Auto Find Best Accuracy
 
