@@ -120,6 +120,7 @@ def AutoML(X, scale_col=None, encode_col = None, encoders=None, scalers=None,sco
                                                                scoring=cv_silhouette_scorer)
     result = model_tuned.fit(df_prepro)
     
+    
     # Log trained data to csv file
     timestamp = datetime.now()
     
@@ -129,10 +130,12 @@ def AutoML(X, scale_col=None, encode_col = None, encoders=None, scalers=None,sco
     # xx = pd.DataFrame({"aa": [1, 2, 3, 4], "bb": [2, 3, 4, 5]})
     out = pd.DataFrame(X)
     out["label"] = labels
+    
+    dir = "./logs/cluster-" + str(timestamp) + ".csv"
+    dir = dir.replace(":", "_").replace("-", "_").replace(" ", "__")
+    out.to_csv(dir)
 
-    out.to_csv("./logs/cluster-" + str(timestamp) + ".csv")
-
-    result = pd.DataFrame(
+    model_result_out = pd.DataFrame(
         {
             "Date": [timestamp],
             "num_of_people": [len(X)],
@@ -142,7 +145,9 @@ def AutoML(X, scale_col=None, encode_col = None, encoders=None, scalers=None,sco
         }
     )
 
-    result.to_csv("./logs/result-" + str(timestamp) + ".csv")
+    dir = "./logs/result-" + str(timestamp) + ".csv"
+    dir = dir.replace(":", "_").replace("-", "_").replace(" ", "__")
+    model_result_out.to_csv(dir)
 
     return result
     # Auto Find Best Accuracy
