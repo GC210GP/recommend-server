@@ -10,7 +10,8 @@ def connectDB():
     conn = None
     cur = None
     sql = ""
-    # conn = dbinfo
+
+    # db info here
 
     #########################USER DATA(DB)#########################
     # user_id , birthdate, blood_type, frequency(added), is_donated(bool)(added), is_dormant(bool)(added), job
@@ -96,6 +97,7 @@ def updateModel():
 @application.route('/recommend', methods = ['POST'])
 def process():
     import realtime_clustering
+    from sklearn.preprocessing import MinMaxScaler
     df = connectDB()
     clustered_df = realtime_clustering.to_csv(df)
 
@@ -105,16 +107,25 @@ def process():
         if (clustered_df['user_id'] == userId).any():
             if len(likedList) == 0:
                 import recommendation
-                result = recommendation.recommend(userId, clustered_df)
+                result_id, result_weight = recommendation.recommend(userId, clustered_df)
             else:
                 import tuning_weight
-                result = tuning_weight.concating(userId, likedList, clustered_df)
-            result = result.tolist()
-        else:
-            result = []
+                result_id, result_weight = tuning_weight.concating(userId, likedList, clustered_df)
+            result_id = result_id.tolist()
+            result_weight = result_weight.tolist()
 
-    print(result)
-    return jsonify( {'result': result})
+        else:
+            result_id = []
+            result_weight = []
+
+        scale = MinMaxScaler()
+        result_weight = np.array(result_weight)
+        result_weight = result_weight.reshape([-1, 1])
+        result_weight = scale.fit_transform(result_weight)
+        result_weight = result_weight.flatten()
+
+        return jsonify({'result': result_id, 'weight': list(result_weight)})
+
 
 import platform
 
@@ -125,3 +136,6 @@ if __name__ == "__main__":
 
     application.run()
     # application.run(debug = True, threaded=True, host="127.0.0.1", port=5001)
+
+
+# eb deploy blood-donation-recommend

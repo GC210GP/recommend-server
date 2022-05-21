@@ -1,12 +1,11 @@
-from sklearn.metrics import silhouette_score
-import pickle
+from numpy import abs, where
+import joblib
 import numpy as np
 import pandas as pd
-from sklearn.cluster import DBSCAN
+from scipy.stats import stats
 from sklearn.preprocessing import OrdinalEncoder
 from sklearn.preprocessing import StandardScaler
-import joblib
-from scipy.stats import stats
+
 
 def preprocessing(df,encoders=None,  scalers=None):
     scale_col = ['recency', 'frequency']
@@ -29,8 +28,8 @@ def preprocessing(df,encoders=None,  scalers=None):
     return df_prepro
 
 def outliers(col):
-    z = np.abs(stats.zscore(col))
-    idx_outliers = np.where(z>3,True,False)
+    z = abs(stats.zscore(col))
+    idx_outliers = where(z > 3, True, False)
     return pd.Series(idx_outliers, index=col.index)
 
 
@@ -46,7 +45,6 @@ def get_category(age):
     else : cat = "Elderly"
     return cat
 #########################################################################################################
-from sklearn.cluster import DBSCAN
 
 def clustering(df):
     model = joblib.load('./dbscanModel.pkl')

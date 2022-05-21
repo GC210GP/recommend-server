@@ -1,5 +1,6 @@
 # Import Class Libraries
 import warnings
+
 warnings.filterwarnings("ignore")
 import sklearn
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
@@ -13,6 +14,7 @@ from sklearn.preprocessing import OrdinalEncoder
 from sklearn.preprocessing import StandardScaler
 import joblib
 from datetime import datetime
+
 #########################USER DATA(Dataframe)#########################
 # user_id       non-null  int
 # user_name     non-null  str
@@ -29,10 +31,13 @@ from datetime import datetime
 
 
 scale_col = ['recency', 'frequency']
-encode_col = ['sex','location','job', 'ageGroup','is_donated','is_dormant']
+encode_col = ['sex', 'location', 'job', 'ageGroup', 'is_donated', 'is_dormant']
+
+
 def preprocessing(df):
     df = pd.DataFrame(df)
-    df = df[['user_id', 'user_name', 'recency', 'sex', 'blood_type', 'birthdate', 'location', 'job', 'frequency','is_donated', 'is_dormant']]
+    df = df[['user_id', 'user_name', 'recency', 'sex', 'blood_type', 'birthdate', 'location', 'job', 'frequency',
+             'is_donated', 'is_dormant']]
     df['recency'].fillna(df['recency'].mean(), inplace=True)
     df['frequency'].fillna(df['frequency'].mean(), inplace=True)
     df['ageGroup'] = df['birthdate'].apply(lambda x: get_category(x))
@@ -41,24 +46,34 @@ def preprocessing(df):
                     scalers=None)
     joblib.dump(result.best_estimator_, './dbscanModel.pkl')
 
+
 # age categorized
 def get_category(age):
     cat = ""
-    if age <= -1: cat = "Unknown"
-    elif age <= 5: cat = "Baby"
-    elif age <= 12: cat="Child"
-    elif age <= 18: cat = "Teenager"
-    elif age <= 25: cat="Student"
-    elif age <= 35: cat="young Adult"
-    elif age <= 60: cat = "Adult"
-    else : cat = "Elderly"
+    if age <= -1:
+        cat = "Unknown"
+    elif age <= 5:
+        cat = "Baby"
+    elif age <= 12:
+        cat = "Child"
+    elif age <= 18:
+        cat = "Teenager"
+    elif age <= 25:
+        cat = "Student"
+    elif age <= 35:
+        cat = "young Adult"
+    elif age <= 60:
+        cat = "Adult"
+    else:
+        cat = "Elderly"
     return cat
+
+
 # Find outlers
 def outliers(col):
     z = np.abs(stats.zscore(col))
-    idx_outliers = np.where(z>3,True,False)
+    idx_outliers = np.where(z > 3, True, False)
     return pd.Series(idx_outliers, index=col.index)
-
 
 
 # Description = Calculate the silhouette score and return the value
@@ -84,7 +99,8 @@ def cv_silhouette_scorer(estimator, X):
         else:
             return silhouette_score(X, cluster_labels)
 
-def AutoML(X, scale_col=None, encode_col = None, encoders=None, scalers=None,scores=None, score_param=None):
+
+def AutoML(X, scale_col=None, encode_col=None, encoders=None, scalers=None, scores=None, score_param=None):
     model = DBSCAN()
     scaler = StandardScaler()
     encoder = OrdinalEncoder()
@@ -113,24 +129,23 @@ def AutoML(X, scale_col=None, encode_col = None, encoders=None, scalers=None,sco
     df_prepro = pd.DataFrame(df_prepro)
     df_prepro = pd.DataFrame(df_prepro)
     param_grid = {
-        'eps':[0.75,0.1,0.25,0.5,1],
-        'min_samples':[5,20,100,200,500]
+        'eps': [0.75, 0.1, 0.25, 0.5, 1],
+        'min_samples': [5, 20, 100, 200, 500]
     }
     model_tuned = RandomizedSearchCV(estimator=model, param_distributions=param_grid,
-                                                               scoring=cv_silhouette_scorer)
+                                     scoring=cv_silhouette_scorer)
     result = model_tuned.fit(df_prepro)
-    
-    
+
     # Log trained data to csv file
     timestamp = datetime.now()
-    
+
     best_model = result.best_estimator_
     labels = best_model.labels_
 
     # xx = pd.DataFrame({"aa": [1, 2, 3, 4], "bb": [2, 3, 4, 5]})
     out = pd.DataFrame(X)
     out["label"] = labels
-    
+
     dir = "./logs/cluster-" + str(timestamp) + ".csv"
     dir = dir.replace(":", "_").replace("-", "_").replace(" ", "__")
     out.to_csv(dir)
@@ -151,5 +166,3 @@ def AutoML(X, scale_col=None, encode_col = None, encoders=None, scalers=None,sco
 
     return result
     # Auto Find Best Accuracy
-
-
